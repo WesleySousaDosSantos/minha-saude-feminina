@@ -8,22 +8,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
-
-export default function Login() {
+export default function Cadastro() {
   const router = useRouter();
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [focused, setFocused] = useState({
+    nome: false,
+    email: false,
+    password: false,
+    confirmPassword: false,
+  });
+
+  const setFocus = (field, value) =>
+    setFocused((prev) => ({ ...prev, [field]: value }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -51,11 +59,11 @@ export default function Login() {
 
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Ionicons name="heart" size={28} color="#FFFFFF" />
+              <Ionicons name="heart" size={26} color="#FFFFFF" />
             </View>
-            <Text style={styles.welcome}>Bem-vinda de volta</Text>
+            <Text style={styles.welcome}>Vamos começar</Text>
             <Text style={styles.subtitle}>
-              Entre na sua conta para continuar{'\n'}cuidando de você
+              Crie sua conta para acompanhar{'\n'}sua saúde dia a dia
             </Text>
           </View>
 
@@ -63,13 +71,36 @@ export default function Login() {
             <View
               style={[
                 styles.inputWrap,
-                emailFocused && styles.inputWrapFocused,
+                focused.nome && styles.inputWrapFocused,
+              ]}
+            >
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={focused.nome ? '#C43A4A' : '#C56682'}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Seu nome"
+                placeholderTextColor="#9E9E9E"
+                value={nome}
+                onChangeText={setNome}
+                onFocus={() => setFocus('nome', true)}
+                onBlur={() => setFocus('nome', false)}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View
+              style={[
+                styles.inputWrap,
+                focused.email && styles.inputWrapFocused,
               ]}
             >
               <Ionicons
                 name="mail-outline"
                 size={20}
-                color={emailFocused ? '#C43A4A' : '#C56682'}
+                color={focused.email ? '#C43A4A' : '#C56682'}
               />
               <TextInput
                 style={styles.input}
@@ -77,8 +108,8 @@ export default function Login() {
                 placeholderTextColor="#9E9E9E"
                 value={email}
                 onChangeText={setEmail}
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
+                onFocus={() => setFocus('email', true)}
+                onBlur={() => setFocus('email', false)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -88,22 +119,22 @@ export default function Login() {
             <View
               style={[
                 styles.inputWrap,
-                passwordFocused && styles.inputWrapFocused,
+                focused.password && styles.inputWrapFocused,
               ]}
             >
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
-                color={passwordFocused ? '#C43A4A' : '#C56682'}
+                color={focused.password ? '#C43A4A' : '#C56682'}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Sua senha"
+                placeholder="Crie uma senha"
                 placeholderTextColor="#9E9E9E"
                 value={password}
                 onChangeText={setPassword}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
+                onFocus={() => setFocus('password', true)}
+                onBlur={() => setFocus('password', false)}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
@@ -118,15 +149,72 @@ export default function Login() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.forgot}>
-              <Text style={styles.forgotText}>Esqueci minha senha</Text>
+            <View
+              style={[
+                styles.inputWrap,
+                focused.confirmPassword && styles.inputWrapFocused,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={focused.confirmPassword ? '#C43A4A' : '#C56682'}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirme a senha"
+                placeholderTextColor="#9E9E9E"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                onFocus={() => setFocus('confirmPassword', true)}
+                onBlur={() => setFocus('confirmPassword', false)}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={
+                    showConfirmPassword ? 'eye-off-outline' : 'eye-outline'
+                  }
+                  size={20}
+                  color="#C56682"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  acceptedTerms && styles.checkboxChecked,
+                ]}
+              >
+                {acceptedTerms && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.termsText}>
+                Aceito os <Text style={styles.termsLink}>termos de uso</Text>{' '}
+                e a{' '}
+                <Text style={styles.termsLink}>política de privacidade</Text>
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[
+                styles.primaryButton,
+                !acceptedTerms && styles.primaryButtonDisabled,
+              ]}
+              disabled={!acceptedTerms}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryButtonText}>Entrar</Text>
+              <Text style={styles.primaryButtonText}>Criar minha conta</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -137,18 +225,25 @@ export default function Login() {
             <View style={styles.dividerLine} />
           </View>
 
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[
+              styles.secondaryButton,
+              !acceptedTerms && styles.secondaryButtonDisabled,
+            ]}
+            disabled={!acceptedTerms}
+            activeOpacity={0.85}
+          >
             <Ionicons name="logo-google" size={18} color="#1F1F1F" />
-            <Text style={styles.secondaryButtonText}>Entrar com Google</Text>
+            <Text style={styles.secondaryButtonText}>Cadastrar com Google</Text>
           </TouchableOpacity>
 
-          <View style={styles.signup}>
-            <Text style={styles.signupText}>Ainda não tem conta?</Text>
+          <View style={styles.signin}>
+            <Text style={styles.signinText}>Já tem conta?</Text>
             <TouchableOpacity
               hitSlop={8}
-              onPress={() => router.push('/cadastro')}
+              onPress={() => router.replace('/login')}
             >
-              <Text style={styles.signupLink}>Criar conta</Text>
+              <Text style={styles.signinLink}>Entrar</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -202,28 +297,28 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 36,
+    marginTop: 16,
+    marginBottom: 28,
   },
   iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#C43A4A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#C43A4A',
-    shadowOpacity: 0.32,
+    shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 14,
+    elevation: 7,
   },
   welcome: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#1F1F1F',
-    marginBottom: 8,
+    marginBottom: 6,
     letterSpacing: 0.2,
   },
   subtitle: {
@@ -241,7 +336,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingHorizontal: 18,
-    marginBottom: 14,
+    marginBottom: 12,
     borderWidth: 1.5,
     borderColor: 'rgba(197, 102, 130, 0.18)',
   },
@@ -255,20 +350,41 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 54,
+    height: 52,
     fontSize: 15,
     color: '#1F1F1F',
     marginLeft: 12,
     marginRight: 8,
   },
-  forgot: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: 4,
-    paddingVertical: 4,
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 22,
+    paddingHorizontal: 4,
   },
-  forgotText: {
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#C56682',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#C56682',
+    borderColor: '#C56682',
+  },
+  termsText: {
+    flex: 1,
     fontSize: 13,
+    color: '#6B6B6B',
+    lineHeight: 18,
+  },
+  termsLink: {
     color: '#C56682',
     fontWeight: '700',
   },
@@ -286,6 +402,11 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 8,
   },
+  primaryButtonDisabled: {
+    backgroundColor: 'rgba(197, 102, 130, 0.45)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -295,7 +416,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 22,
   },
   dividerLine: {
     flex: 1,
@@ -319,24 +440,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(31, 31, 31, 0.1)',
   },
+  secondaryButtonDisabled: {
+    opacity: 0.5,
+  },
   secondaryButtonText: {
     color: '#1F1F1F',
     fontSize: 15,
     fontWeight: '600',
   },
-  signup: {
+  signin: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
     marginTop: 'auto',
-    paddingTop: 32,
+    paddingTop: 28,
   },
-  signupText: {
+  signinText: {
     fontSize: 14,
     color: '#6B6B6B',
   },
-  signupLink: {
+  signinLink: {
     fontSize: 14,
     color: '#C56682',
     fontWeight: '700',
