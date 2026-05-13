@@ -10,10 +10,12 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
-export default function App() {
+export default function SplashScreen() {
+  const router = useRouter();
   const pulse = useRef(new Animated.Value(1)).current;
   const arrow = useRef(new Animated.Value(0)).current;
 
@@ -50,12 +52,16 @@ export default function App() {
   }, [pulse, arrow]);
 
   return (
-    <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.95}>
+    <TouchableOpacity
+      style={{ flex: 1 }}
+      activeOpacity={0.95}
+      onPress={() => router.push('/login')}
+    >
       <StatusBar style="light" />
 
       <LinearGradient
-        colors={['#C43A4A', '#C56682', '#E7A48C']}
-        locations={[0, 0.55, 1]}
+        colors={['#C56682', '#C56682', '#FBD9E5']}
+        locations={[0, 0.6, 1]}
         style={styles.gradient}
       >
         <View style={[styles.blob, styles.blobOne]} />
@@ -94,7 +100,7 @@ export default function App() {
           <Ionicons
             name="chevron-down"
             size={22}
-            color="rgba(255, 255, 255, 0.75)"
+            color="rgba(196, 58, 74, 0.85)"
           />
           <Text style={styles.tapText}>TOQUE PARA CONTINUAR</Text>
         </Animated.View>
@@ -225,9 +231,9 @@ const styles = StyleSheet.create({
   },
   tapText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(196, 58, 74, 0.85)',
     letterSpacing: 2,
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
