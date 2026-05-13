@@ -125,6 +125,7 @@ export default function Login() {
             <TouchableOpacity
               style={styles.primaryButton}
               activeOpacity={0.85}
+              onPress={() => router.replace('/hoje')}
             >
               <Text style={styles.primaryButtonText}>Entrar</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />

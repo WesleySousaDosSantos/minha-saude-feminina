@@ -53,7 +53,7 @@ export default function Onboarding() {
   };
 
   const handleContinue = () => {
-    router.push('/login');
+    router.replace('/hoje');
   };
 
   return (
