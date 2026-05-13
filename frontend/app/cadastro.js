@@ -213,6 +213,7 @@ export default function Cadastro() {
               ]}
               disabled={!acceptedTerms}
               activeOpacity={0.85}
+              onPress={() => router.push('/onboarding')}
             >
               <Text style={styles.primaryButtonText}>Criar minha conta</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
