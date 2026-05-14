@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const moods = [
   { id: 'happy', icon: 'happy-outline', label: 'Bem' },
@@ -19,6 +20,7 @@ const moods = [
 ];
 
 export default function Hoje() {
+  const router = useRouter();
   return (
     <View style={styles.root}>
       <View style={[styles.blob, styles.blobTop]} />
@@ -110,7 +112,31 @@ export default function Hoje() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.contentCard} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.askCard}
+            activeOpacity={0.9}
+            onPress={() => router.push('/e-normal-isso')}
+          >
+            <View style={styles.askIconWrap}>
+              <Ionicons name="chatbox-ellipses" size={26} color="#FFFFFF" />
+            </View>
+            <View style={styles.askContent}>
+              <Text style={styles.askLabel}>É NORMAL ISSO?</Text>
+              <Text style={styles.askTitle}>
+                Tire suas dúvidas anonimamente
+              </Text>
+              <Text style={styles.askHelper}>
+                Profissionais da UBS respondem em até 24h
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={20} color="#C43A4A" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.contentCard}
+            activeOpacity={0.85}
+            onPress={() => router.push('/conteudo/1')}
+          >
             <View style={styles.contentBadge}>
               <Text style={styles.contentBadgeText}>CONTEÚDO DO DIA</Text>
             </View>
@@ -388,6 +414,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B6B6B',
     marginTop: 2,
+  },
+  askCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#C43A4A',
+    shadowColor: '#C56682',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  askIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#C43A4A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#C43A4A',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  askContent: {
+    flex: 1,
+  },
+  askLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#C56682',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  askTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1F1F1F',
+    lineHeight: 19,
+  },
+  askHelper: {
+    fontSize: 11,
+    color: '#6B6B6B',
+    marginTop: 3,
   },
   contentCard: {
     backgroundColor: '#FFFFFF',
