@@ -202,7 +202,7 @@ export default function Perfil() {
               iconColor="#C56682"
               label="Meus dados"
               helper="Visualizar tudo que está salvo"
-              onPress={() => {}}
+              onPress={() => router.push('/perfil/meus-dados')}
             />
             <MenuDivider />
             <MenuRow
@@ -211,7 +211,7 @@ export default function Perfil() {
               iconColor="#E7A48C"
               label="Baixar meus dados"
               helper="Conforme a LGPD"
-              onPress={() => {}}
+              onPress={() => router.push('/perfil/baixar-dados')}
             />
           </View>
 
@@ -253,7 +253,7 @@ export default function Perfil() {
               tint="#FBD9E5"
               iconColor="#C43A4A"
               label="Sobre o Minha Saúde Feminina"
-              onPress={() => {}}
+              onPress={() => router.push('/sobre')}
             />
             <MenuDivider />
             <MenuRow
@@ -261,7 +261,7 @@ export default function Perfil() {
               tint="rgba(197, 102, 130, 0.18)"
               iconColor="#C56682"
               label="Política de privacidade"
-              onPress={() => {}}
+              onPress={() => router.push('/politica-privacidade')}
             />
             <MenuDivider />
             <MenuRow
@@ -269,7 +269,7 @@ export default function Perfil() {
               tint="rgba(231, 164, 140, 0.22)"
               iconColor="#E7A48C"
               label="Termos de uso"
-              onPress={() => {}}
+              onPress={() => router.push('/termos-uso')}
             />
             <MenuDivider />
             <MenuRow
@@ -278,7 +278,7 @@ export default function Perfil() {
               iconColor="#1F1F1F"
               label="Encontrar uma UBS"
               helper="Atendimento gratuito perto de você"
-              onPress={() => {}}
+              onPress={() => router.push('/perfil/ubs')}
             />
           </View>
 
