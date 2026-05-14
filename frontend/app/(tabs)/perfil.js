@@ -173,6 +173,15 @@ export default function Perfil() {
               onPress={() => router.push('/perfil/editar')}
             />
             <MenuDivider />
+            <MenuRow
+              icon="alarm-outline"
+              tint="rgba(231, 164, 140, 0.25)"
+              iconColor="#E7A48C"
+              label="Meus lembretes"
+              helper="Medicação, consultas, exames"
+              onPress={() => router.push('/lembretes')}
+            />
+            <MenuDivider />
             <MenuToggleRow
               icon="notifications-outline"
               tint="rgba(197, 102, 130, 0.18)"
