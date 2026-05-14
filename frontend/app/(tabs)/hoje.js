@@ -115,18 +115,16 @@ export default function Hoje() {
           <TouchableOpacity
             style={styles.askCard}
             activeOpacity={0.9}
-            onPress={() => router.push('/e-normal-isso')}
+            onPress={() => router.push('/duvidas-frequentes')}
           >
             <View style={styles.askIconWrap}>
-              <Ionicons name="chatbox-ellipses" size={26} color="#FFFFFF" />
+              <Ionicons name="help" size={26} color="#FFFFFF" />
             </View>
             <View style={styles.askContent}>
-              <Text style={styles.askLabel}>É NORMAL ISSO?</Text>
-              <Text style={styles.askTitle}>
-                Tire suas dúvidas anonimamente
-              </Text>
+              <Text style={styles.askLabel}>DÚVIDAS FREQUENTES</Text>
+              <Text style={styles.askTitle}>É normal isso?</Text>
               <Text style={styles.askHelper}>
-                Profissionais da UBS respondem em até 24h
+                Respostas validadas pela UBS e UNIFEBE
               </Text>
             </View>
             <Ionicons name="arrow-forward" size={20} color="#C43A4A" />
