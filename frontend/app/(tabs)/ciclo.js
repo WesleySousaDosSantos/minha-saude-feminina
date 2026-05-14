@@ -10,6 +10,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const MONTHS = [
   'Janeiro',
@@ -94,10 +95,18 @@ const PHASE_COLOR = {
 };
 
 export default function Ciclo() {
+  const router = useRouter();
   const today = startOfDay(new Date());
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState(today);
+
+  const openDayDetail = (date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    router.push(`/dia/${yyyy}-${mm}-${dd}`);
+  };
 
   const cycleStart = useMemo(() => {
     const start = new Date(today);
@@ -269,12 +278,20 @@ export default function Ciclo() {
             </View>
           </View>
 
-          <View style={styles.selectedCard}>
+          <TouchableOpacity
+            style={styles.selectedCard}
+            activeOpacity={0.85}
+            onPress={() => openDayDetail(selectedDate)}
+          >
             <View style={styles.selectedHeader}>
               <Ionicons name="calendar" size={18} color="#C56682" />
               <Text style={styles.selectedDate}>
                 {formatLongDate(selectedDate)}
               </Text>
+              <View style={styles.selectedDetailHint}>
+                <Text style={styles.selectedDetailHintText}>Ver detalhes</Text>
+                <Ionicons name="chevron-forward" size={14} color="#C43A4A" />
+              </View>
             </View>
             {selectedPhase ? (
               <View style={styles.phasePillRow}>
@@ -292,7 +309,7 @@ export default function Ciclo() {
             ) : (
               <Text style={styles.selectedPhaseNeutral}>Fase neutra do ciclo</Text>
             )}
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
@@ -567,9 +584,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   selectedDate: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: '#1F1F1F',
+  },
+  selectedDetailHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(196, 58, 74, 0.1)',
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  selectedDetailHintText: {
+    fontSize: 11,
+    color: '#C43A4A',
+    fontWeight: '800',
   },
   phasePillRow: {
     flexDirection: 'row',
