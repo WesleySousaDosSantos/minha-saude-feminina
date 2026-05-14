@@ -111,7 +111,11 @@ export default function Perfil() {
             </View>
             <Text style={styles.userName}>{USER.name}</Text>
             <Text style={styles.userEmail}>{USER.email}</Text>
-            <TouchableOpacity style={styles.editButton} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.editButton}
+              activeOpacity={0.85}
+              onPress={() => router.push('/perfil/editar')}
+            >
               <Ionicons name="create-outline" size={14} color="#C43A4A" />
               <Text style={styles.editButtonText}>Editar perfil</Text>
             </TouchableOpacity>
@@ -126,7 +130,10 @@ export default function Perfil() {
                 <Text style={styles.cycleTitle}>Meu ciclo</Text>
                 <Text style={styles.cycleSubtitle}>Configurações atuais</Text>
               </View>
-              <TouchableOpacity hitSlop={8}>
+              <TouchableOpacity
+                hitSlop={8}
+                onPress={() => router.push('/perfil/ciclo')}
+              >
                 <Ionicons name="create-outline" size={18} color="#C56682" />
               </TouchableOpacity>
             </View>
@@ -163,7 +170,7 @@ export default function Perfil() {
               tint="#FBD9E5"
               iconColor="#C43A4A"
               label="Dados pessoais"
-              onPress={() => {}}
+              onPress={() => router.push('/perfil/editar')}
             />
             <MenuDivider />
             <MenuToggleRow
