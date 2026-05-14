@@ -6,14 +6,14 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useQuickAction } from '../../lib/QuickAction';
 
-function CenterPlusButton({ accessibilityState }) {
-  const router = useRouter();
+function CenterPlusButton() {
+  const { open } = useQuickAction();
   return (
     <TouchableOpacity
       style={styles.plusWrap}
-      onPress={() => router.push('/registrar')}
+      onPress={() => open()}
       activeOpacity={0.85}
     >
       <View style={styles.plusButton}>
