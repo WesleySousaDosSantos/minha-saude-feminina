@@ -10,123 +10,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const CATEGORIES = [
-  { id: 'all', label: 'Todos', icon: 'apps-outline' },
-  { id: 'cycle', label: 'Ciclo', icon: 'water-outline' },
-  { id: 'intimate', label: 'Saúde íntima', icon: 'flower-outline' },
-  { id: 'contraception', label: 'Anticoncepção', icon: 'shield-checkmark-outline' },
-  { id: 'pregnancy', label: 'Gravidez', icon: 'happy-outline' },
-  { id: 'wellbeing', label: 'Bem-estar', icon: 'leaf-outline' },
-  { id: 'sexuality', label: 'Sexualidade', icon: 'heart-outline' },
-];
-
-const CATEGORY_LABEL = {
-  cycle: 'Ciclo',
-  intimate: 'Saúde íntima',
-  contraception: 'Anticoncepção',
-  pregnancy: 'Gravidez',
-  wellbeing: 'Bem-estar',
-  sexuality: 'Sexualidade',
-};
-
-const ARTICLES = [
-  {
-    id: '1',
-    category: 'cycle',
-    title: 'Entendendo seu ciclo menstrual',
-    excerpt:
-      'Saiba o que acontece em cada fase do ciclo e como isso influencia seu corpo e suas emoções.',
-    readTime: 5,
-    featured: true,
-    color: '#C56682',
-    icon: 'water',
-  },
-  {
-    id: '2',
-    category: 'intimate',
-    title: 'Corrimento: o que é normal e o que não é',
-    excerpt:
-      'Aprenda a identificar mudanças que podem indicar uma infecção.',
-    readTime: 4,
-    color: '#E7A48C',
-    icon: 'water-outline',
-  },
-  {
-    id: '3',
-    category: 'contraception',
-    title: 'Métodos contraceptivos na UBS',
-    excerpt:
-      'Conheça as opções gratuitas disponíveis e como escolher a melhor para você.',
-    readTime: 6,
-    color: '#C43A4A',
-    icon: 'shield-checkmark',
-  },
-  {
-    id: '4',
-    category: 'pregnancy',
-    title: 'Primeiros sinais de gravidez',
-    excerpt:
-      'Sintomas iniciais e quando fazer o teste para ter certeza.',
-    readTime: 3,
-    color: '#FBD9E5',
-    icon: 'happy',
-    iconColor: '#C43A4A',
-  },
-  {
-    id: '5',
-    category: 'intimate',
-    title: 'Higiene íntima: cuidados que importam',
-    excerpt:
-      'Boas práticas no dia a dia para evitar infecções e desconfortos.',
-    readTime: 3,
-    color: '#C56682',
-    icon: 'flower',
-  },
-  {
-    id: '6',
-    category: 'wellbeing',
-    title: 'TPM: o que é e como aliviar',
-    excerpt:
-      'Estratégias simples para passar pela tensão pré-menstrual com mais conforto.',
-    readTime: 5,
-    color: '#E7A48C',
-    icon: 'leaf',
-  },
-  {
-    id: '7',
-    category: 'intimate',
-    title: 'Quando procurar a UBS',
-    excerpt:
-      'Sinais que indicam a necessidade de atendimento ginecológico.',
-    readTime: 4,
-    color: '#C43A4A',
-    icon: 'medkit',
-  },
-  {
-    id: '8',
-    category: 'sexuality',
-    title: 'Mitos e verdades sobre sexualidade',
-    excerpt:
-      'Informação acolhedora e baseada em evidências para você se conhecer melhor.',
-    readTime: 7,
-    color: '#C56682',
-    icon: 'heart',
-  },
-  {
-    id: '9',
-    category: 'cycle',
-    title: 'Cólicas: por que acontecem?',
-    excerpt:
-      'Entenda a origem das cólicas e o que pode ajudar a aliviar.',
-    readTime: 4,
-    color: '#FBD9E5',
-    icon: 'flash',
-    iconColor: '#C43A4A',
-  },
-];
+import { useRouter } from 'expo-router';
+import { ARTICLES, CATEGORIES, CATEGORY_LABEL } from '../../lib/articles';
 
 export default function Conteudos() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
@@ -214,7 +102,11 @@ export default function Conteudos() {
           </ScrollView>
 
           {featured && activeCategory === 'all' && search.trim() === '' && (
-            <TouchableOpacity style={styles.featuredCard} activeOpacity={0.9}>
+            <TouchableOpacity
+              style={styles.featuredCard}
+              activeOpacity={0.9}
+              onPress={() => router.push(`/conteudo/${featured.id}`)}
+            >
               <View
                 style={[
                   styles.featuredImage,
@@ -282,6 +174,7 @@ export default function Conteudos() {
                   key={article.id}
                   style={styles.articleCard}
                   activeOpacity={0.85}
+                  onPress={() => router.push(`/conteudo/${article.id}`)}
                 >
                   <View
                     style={[
