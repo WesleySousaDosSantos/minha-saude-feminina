@@ -67,8 +67,16 @@ export default function EditarCiclo() {
 
   const initial = useMemo(() => {
     const c = cycleQuery.data;
+    const parsed = parseISODate(c?.lastPeriodStart);
+    const lastPeriod = parsed
+      ? new Date(
+          parsed.getUTCFullYear(),
+          parsed.getUTCMonth(),
+          parsed.getUTCDate()
+        )
+      : FALLBACK_LAST;
     return {
-      lastPeriod: parseISODate(c?.lastPeriodStart) || FALLBACK_LAST,
+      lastPeriod,
       duration: c?.cycleDuration ?? 28,
       periodDuration: c?.periodDuration ?? 5,
     };
@@ -134,7 +142,13 @@ export default function EditarCiclo() {
   const handleSave = () => {
     if (!dirty || upsertMutation.isPending) return;
     const payload = {
-      lastPeriodStart: lastPeriod.toISOString(),
+      lastPeriodStart: new Date(
+        Date.UTC(
+          lastPeriod.getFullYear(),
+          lastPeriod.getMonth(),
+          lastPeriod.getDate()
+        )
+      ).toISOString(),
       cycleDuration: duration,
       periodDuration,
     };

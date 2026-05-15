@@ -32,8 +32,17 @@ export function parseISODate(value) {
 export function dayOfCycle(lastPeriodStart, cycleDuration, today = new Date()) {
   const start = parseISODate(lastPeriodStart);
   if (!start || !cycleDuration) return null;
-  const ms = today.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0);
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  const startUTC = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
+  const todayUTC = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const days = Math.floor((todayUTC - startUTC) / (1000 * 60 * 60 * 24));
   if (days < 0) return null;
   return (days % cycleDuration) + 1;
 }
