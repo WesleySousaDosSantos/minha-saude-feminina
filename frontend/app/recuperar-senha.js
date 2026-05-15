@@ -148,17 +148,6 @@ export default function RecuperarSenha() {
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.helpCard}>
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={18}
-                    color="#C56682"
-                  />
-                  <Text style={styles.helpText}>
-                    Se você se cadastrou com Google, basta voltar e entrar com
-                    Google novamente.
-                  </Text>
-                </View>
               </View>
 
               <View style={styles.bottomRow}>

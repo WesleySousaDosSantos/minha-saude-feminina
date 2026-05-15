@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -15,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
@@ -54,6 +56,7 @@ export default function EditarPerfil() {
   const [email] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [birthDate, setBirthDate] = useState(initialBirth);
+  const [avatar, setAvatar] = useState(user?.avatar || null);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
   const [focused, setFocused] = useState(null);
 
@@ -63,7 +66,45 @@ export default function EditarPerfil() {
   const dirty =
     name !== (user?.name || '') ||
     phone !== (user?.phone || '') ||
+    avatar !== (user?.avatar || null) ||
     birthDate.getTime() !== initialBirth.getTime();
+
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permissão necessária',
+        'Permita o acesso às fotos para escolher uma imagem de perfil.'
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.4,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    if (!asset.base64) return;
+    const nextAvatar = `data:image/jpeg;base64,${asset.base64}`;
+    const previous = avatar;
+    setAvatar(nextAvatar);
+    updateMutation.mutate(
+      { avatar: nextAvatar },
+      {
+        onSuccess: (updatedUser) => patchUser(updatedUser),
+        onError: (err) => {
+          setAvatar(previous);
+          Alert.alert(
+            'Não foi possível salvar a foto',
+            err?.message || 'Tente novamente.'
+          );
+        },
+      }
+    );
+  };
 
   const goBack = () => {
     if (dirty) {
@@ -99,9 +140,12 @@ export default function EditarPerfil() {
     if (!canSave || !dirty || updateMutation.isPending) return;
     const payload = {
       name: name.trim(),
-      phone: phone.trim() || null,
+      phone: phone.trim(),
       birthDate: birthDate.toISOString(),
     };
+    if (avatar !== (user?.avatar || null)) {
+      payload.avatar = avatar;
+    }
     updateMutation.mutate(payload, {
       onSuccess: (updatedUser) => {
         patchUser(updatedUser);
@@ -152,10 +196,23 @@ export default function EditarPerfil() {
             <View style={styles.avatarSection}>
               <View style={styles.avatarWrap}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials || 'M'}</Text>
+                  {avatar ? (
+                    <Image source={{ uri: avatar }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{initials || 'M'}</Text>
+                  )}
                 </View>
-                <TouchableOpacity style={styles.avatarEditButton} activeOpacity={0.85}>
-                  <Ionicons name="camera" size={16} color="#FFFFFF" />
+                <TouchableOpacity
+                  style={styles.avatarEditButton}
+                  activeOpacity={0.85}
+                  onPress={pickImage}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="camera" size={16} color="#FFFFFF" />
+                  )}
                 </TouchableOpacity>
               </View>
               <Text style={styles.avatarHelper}>Toque na câmera para alterar</Text>
@@ -399,11 +456,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF',
+    overflow: 'hidden',
     shadowColor: '#C43A4A',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
     elevation: 8,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     fontSize: 36,

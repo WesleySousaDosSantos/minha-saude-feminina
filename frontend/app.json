@@ -35,6 +35,12 @@
           "calendarPermission": "O Minha Saúde Feminina adiciona seus lembretes no calendário do celular pra te avisar na hora certa.",
           "remindersPermission": "O Minha Saúde Feminina adiciona seus lembretes no app de lembretes do iOS."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Minha Saúde Feminina usa suas fotos para você escolher uma imagem de perfil."
+        }
       ]
     ]
   }

@@ -265,24 +265,6 @@ export default function Cadastro() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryButton,
-              !acceptedTerms && styles.secondaryButtonDisabled,
-            ]}
-            disabled={!acceptedTerms}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="logo-google" size={18} color="#1F1F1F" />
-            <Text style={styles.secondaryButtonText}>Cadastrar com Google</Text>
-          </TouchableOpacity>
-
           <View style={styles.signin}>
             <Text style={styles.signinText}>Já tem conta?</Text>
             <TouchableOpacity

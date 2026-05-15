@@ -165,17 +165,6 @@ export default function Login() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85}>
-            <Ionicons name="logo-google" size={18} color="#1F1F1F" />
-            <Text style={styles.secondaryButtonText}>Entrar com Google</Text>
-          </TouchableOpacity>
-
           <View style={styles.signup}>
             <Text style={styles.signupText}>Ainda não tem conta?</Text>
             <TouchableOpacity
