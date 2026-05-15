@@ -5,12 +5,17 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuickAction } from '../../lib/QuickAction';
+import {
+  useCycleQuery,
+  useRegistrosByDateQuery,
+} from '../../services/queries';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -155,37 +160,33 @@ function parseDate(value) {
   }
 }
 
-function getMockRegistros(date) {
-  const today = startOfDay(new Date());
-  const target = startOfDay(date);
-
-  if (target.getTime() === today.getTime()) {
-    return {
-      flow: 'light',
-      mood: 'normal',
-      energy: 'medium',
-      symptoms: ['headache', 'fatigue'],
-      cramps: { intensity: 'mild', locations: ['lowerBelly'] },
-      discharge: null,
-      notes: 'Acordei meio cansada hoje. Bebi mais água depois do almoço.',
-    };
-  }
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  if (target.getTime() === yesterday.getTime()) {
-    return {
-      flow: null,
-      mood: 'happy',
-      energy: 'high',
-      symptoms: [],
-      cramps: null,
-      discharge: { color: 'clear', texture: 'stretchy', volume: 'medium' },
-      notes: null,
-    };
-  }
-
-  return null;
+function shapeRegistro(item) {
+  if (!item) return null;
+  const cramps =
+    item.crampIntensity || item.crampDuration || item.crampLocations?.length
+      ? {
+          intensity: item.crampIntensity,
+          locations: item.crampLocations || [],
+          duration: item.crampDuration,
+        }
+      : null;
+  const discharge =
+    item.dischargeColor || item.dischargeTexture || item.dischargeVolume
+      ? {
+          color: item.dischargeColor,
+          texture: item.dischargeTexture,
+          volume: item.dischargeVolume,
+        }
+      : null;
+  return {
+    flow: item.flow,
+    mood: item.mood,
+    energy: item.energy,
+    symptoms: (item.symptoms || []).filter((s) => s !== 'cramps'),
+    cramps,
+    discharge,
+    notes: item.notes,
+  };
 }
 
 export default function DiaDetalhe() {
@@ -195,20 +196,30 @@ export default function DiaDetalhe() {
 
   const date = useMemo(() => parseDate(dateParam), [dateParam]);
 
+  const cycleQuery = useCycleQuery();
+  const registrosQuery = useRegistrosByDateQuery(date);
+
   const cycleStart = useMemo(() => {
+    if (cycleQuery.data?.lastPeriodStart) {
+      const d = new Date(cycleQuery.data.lastPeriodStart);
+      if (!isNaN(d.getTime())) return d;
+    }
     const today = startOfDay(new Date());
     const s = new Date(today);
     s.setDate(today.getDate() - 13);
     return s;
-  }, []);
-  const cycleDuration = 28;
-  const periodDuration = 5;
+  }, [cycleQuery.data]);
+  const cycleDuration = cycleQuery.data?.cycleDuration ?? 28;
+  const periodDuration = cycleQuery.data?.periodDuration ?? 5;
 
   const phase = getPhase(date, cycleStart, cycleDuration, periodDuration);
   const cycleDay = getCycleDay(date, cycleStart, cycleDuration);
   const phaseInfo = PHASE_INFO[phase];
 
-  const registros = useMemo(() => getMockRegistros(date), [date]);
+  const registros = useMemo(
+    () => shapeRegistro(registrosQuery.data?.[0]),
+    [registrosQuery.data]
+  );
 
   const today = startOfDay(new Date());
   const isToday = startOfDay(date).getTime() === today.getTime();
@@ -285,6 +296,10 @@ export default function DiaDetalhe() {
                 Você pode registrar sintomas, humor e fluxo a partir do dia
                 atual.
               </Text>
+            </View>
+          ) : registrosQuery.isLoading ? (
+            <View style={styles.emptyCard}>
+              <ActivityIndicator color="#C56682" />
             </View>
           ) : !hasAnyRegistro ? (
             <View style={styles.emptyCard}>

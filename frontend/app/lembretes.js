@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,17 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import {
+  useDeleteLembreteMutation,
+  useLembretesQuery,
+  useUpdateLembreteMutation,
+} from '../services/queries';
 
 if (
   Platform.OS === 'android' &&
@@ -68,82 +74,11 @@ function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function buildMockReminders() {
-  const today = new Date();
-  const todayAt = (h, m) => {
-    const d = new Date(today);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-  const inDays = (days, h = 9, m = 0) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + days);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-
-  return [
-    {
-      id: '1',
-      type: 'medication',
-      title: 'Tomar pílula',
-      datetime: todayAt(22, 0),
-      repeat: 'daily',
-      notify: true,
-      notes: 'Tomar com o estômago cheio',
-      completed: false,
-    },
-    {
-      id: '2',
-      type: 'other',
-      title: 'Beber 2L de água',
-      datetime: todayAt(18, 0),
-      repeat: 'daily',
-      notify: true,
-      notes: null,
-      completed: false,
-    },
-    {
-      id: '3',
-      type: 'appointment',
-      title: 'Consulta ginecológica',
-      datetime: inDays(4, 14, 30),
-      repeat: 'none',
-      notify: true,
-      notes: 'UBS Central — levar cartão SUS',
-      completed: false,
-    },
-    {
-      id: '4',
-      type: 'exam',
-      title: 'Papanicolau',
-      datetime: inDays(11, 9, 0),
-      repeat: 'none',
-      notify: true,
-      notes: null,
-      completed: false,
-    },
-    {
-      id: '5',
-      type: 'cycle',
-      title: 'Próxima menstruação prevista',
-      datetime: inDays(14, 8, 0),
-      repeat: 'monthly',
-      notify: false,
-      notes: null,
-      completed: false,
-    },
-    {
-      id: '6',
-      type: 'medication',
-      title: 'Vitamina D',
-      datetime: inDays(-1, 9, 0),
-      repeat: 'daily',
-      notify: true,
-      notes: null,
-      completed: true,
-    },
-  ];
+function normalizeReminders(list) {
+  return (list || []).map((r) => ({
+    ...r,
+    datetime: new Date(r.datetime),
+  }));
 }
 
 function formatTime(date) {
@@ -221,8 +156,14 @@ function groupReminders(reminders) {
 
 export default function Lembretes() {
   const router = useRouter();
-  const [reminders, setReminders] = useState(buildMockReminders);
+  const lembretesQuery = useLembretesQuery();
+  const updateMutation = useUpdateLembreteMutation();
+  const deleteMutation = useDeleteLembreteMutation();
 
+  const reminders = useMemo(
+    () => normalizeReminders(lembretesQuery.data),
+    [lembretesQuery.data]
+  );
   const groups = useMemo(() => groupReminders(reminders), [reminders]);
   const activeCount = reminders.filter((r) => !r.completed).length;
   const todayCount = groups.today.length;
@@ -237,9 +178,18 @@ export default function Lembretes() {
   };
 
   const toggleComplete = (id) => {
+    const item = reminders.find((r) => r.id === id);
+    if (!item) return;
     animate();
-    setReminders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r))
+    updateMutation.mutate(
+      { id, completed: !item.completed },
+      {
+        onError: (err) =>
+          Alert.alert(
+            'Não foi possível atualizar',
+            err?.message || 'Tente novamente.'
+          ),
+      }
     );
   };
 
@@ -255,14 +205,21 @@ export default function Lembretes() {
           style: 'destructive',
           onPress: () => {
             animate();
-            setReminders((prev) => prev.filter((x) => x.id !== id));
+            deleteMutation.mutate(id, {
+              onError: (err) =>
+                Alert.alert(
+                  'Não foi possível excluir',
+                  err?.message || 'Tente novamente.'
+                ),
+            });
           },
         },
       ]
     );
   };
 
-  const isEmpty = reminders.length === 0;
+  const isLoading = lembretesQuery.isLoading;
+  const isEmpty = !isLoading && reminders.length === 0;
 
   return (
     <View style={styles.root}>
@@ -294,7 +251,11 @@ export default function Lembretes() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {isEmpty ? (
+          {isLoading ? (
+            <View style={{ paddingTop: 64, alignItems: 'center' }}>
+              <ActivityIndicator color="#C56682" />
+            </View>
+          ) : isEmpty ? (
             <EmptyState
               onCreate={() => router.push('/registro/lembrete')}
             />

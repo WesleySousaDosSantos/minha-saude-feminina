@@ -14,6 +14,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import { useCreateLembreteMutation } from '../../services/queries';
 
 const TYPES = [
   { id: 'medication', label: 'Medicação', icon: 'medical-outline' },
@@ -74,6 +75,13 @@ export default function RegistroLembrete() {
   const [repeat, setRepeat] = useState('none');
   const [notify, setNotify] = useState(true);
   const [notes, setNotes] = useState('');
+  const createMutation = useCreateLembreteMutation();
+
+  const buildDateTime = () => {
+    const merged = new Date(date);
+    merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    return merged;
+  };
 
   const openDatePicker = () => {
     if (Platform.OS === 'android') {
@@ -114,7 +122,16 @@ export default function RegistroLembrete() {
       iconBg="rgba(231, 164, 140, 0.22)"
       showDateCard={false}
       canSave={title.trim().length > 0}
-      onSave={() => {}}
+      onSave={() =>
+        createMutation.mutateAsync({
+          type,
+          title: title.trim(),
+          datetime: buildDateTime().toISOString(),
+          repeat,
+          notify,
+          notes: notes.trim() || null,
+        })
+      }
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tipo</Text>

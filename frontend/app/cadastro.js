@@ -8,14 +8,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '../lib/AuthContext';
 
 export default function Cadastro() {
   const router = useRouter();
+  const { register } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +37,40 @@ export default function Cadastro() {
 
   const setFocus = (field, value) =>
     setFocused((prev) => ({ ...prev, [field]: value }));
+
+  const registerMutation = useMutation({
+    mutationFn: () =>
+      register({
+        name: nome.trim(),
+        email: email.trim(),
+        password,
+        termsAccepted: acceptedTerms,
+      }),
+    onSuccess: () => router.replace('/onboarding'),
+    onError: (err) =>
+      Alert.alert(
+        'Não foi possível criar a conta',
+        err?.message || 'Tente novamente.'
+      ),
+  });
+
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const formReady =
+    nome.trim().length >= 2 &&
+    validEmail &&
+    password.length >= 6 &&
+    confirmPassword === password &&
+    acceptedTerms;
+  const canSubmit = formReady && !registerMutation.isPending;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    if (password !== confirmPassword) {
+      Alert.alert('Senhas diferentes', 'A confirmação não bate com a senha.');
+      return;
+    }
+    registerMutation.mutate();
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -209,14 +248,20 @@ export default function Cadastro() {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                !acceptedTerms && styles.primaryButtonDisabled,
+                !canSubmit && styles.primaryButtonDisabled,
               ]}
-              disabled={!acceptedTerms}
+              disabled={!canSubmit}
               activeOpacity={0.85}
-              onPress={() => router.push('/onboarding')}
+              onPress={handleSubmit}
             >
-              <Text style={styles.primaryButtonText}>Criar minha conta</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              {registerMutation.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.primaryButtonText}>Criar minha conta</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -343,11 +388,6 @@ const styles = StyleSheet.create({
   },
   inputWrapFocused: {
     borderColor: '#C43A4A',
-    shadowColor: '#C43A4A',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
   },
   input: {
     flex: 1,

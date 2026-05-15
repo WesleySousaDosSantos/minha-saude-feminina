@@ -6,6 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
+import { useUpsertCycleMutation } from '../services/queries';
 
 export default function Onboarding() {
   const router = useRouter();
+  const upsertCycleMutation = useUpsertCycleMutation();
   const [lastPeriod, setLastPeriod] = useState(null);
   const [cycleDuration, setCycleDuration] = useState(28);
   const [periodDuration, setPeriodDuration] = useState(5);
@@ -53,8 +57,39 @@ export default function Onboarding() {
   };
 
   const handleContinue = () => {
+    if (!lastPeriod || upsertCycleMutation.isPending) return;
+    const startOfDay = new Date(lastPeriod);
+    startOfDay.setHours(0, 0, 0, 0);
+    upsertCycleMutation.mutate(
+      {
+        lastPeriodStart: startOfDay.toISOString(),
+        cycleDuration,
+        periodDuration,
+      },
+      {
+        onSuccess: () => router.replace('/hoje'),
+        onError: (err) =>
+          Alert.alert(
+            'Não foi possível salvar o ciclo',
+            err?.message ||
+              'Você pode configurar depois em Perfil → Meu ciclo.',
+            [
+              { text: 'Tentar de novo', style: 'cancel' },
+              {
+                text: 'Pular',
+                onPress: () => router.replace('/hoje'),
+              },
+            ]
+          ),
+      }
+    );
+  };
+
+  const handleSkip = () => {
     router.replace('/hoje');
   };
+
+  const canContinue = !!lastPeriod && !upsertCycleMutation.isPending;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -225,18 +260,29 @@ export default function Onboarding() {
         </View>
 
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={[
+            styles.primaryButton,
+            !canContinue && styles.primaryButtonDisabled,
+          ]}
           activeOpacity={0.85}
+          disabled={!canContinue}
           onPress={handleContinue}
         >
-          <Text style={styles.primaryButtonText}>Continuar</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          {upsertCycleMutation.isPending ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.primaryButtonText}>Continuar</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.skipButton}
           hitSlop={8}
-          onPress={handleContinue}
+          disabled={upsertCycleMutation.isPending}
+          onPress={handleSkip}
         >
           <Text style={styles.skipText}>Pular por agora</Text>
         </TouchableOpacity>
@@ -459,6 +505,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.4,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: '#E0BFC8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   skipButton: {
     alignItems: 'center',

@@ -13,24 +13,26 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useForgotPasswordMutation } from '../services/queries';
 
 export default function RecuperarSenha() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
+  const forgotMutation = useForgotPasswordMutation();
+
   const handleSubmit = () => {
-    if (!validEmail || loading) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 600);
+    if (!validEmail || forgotMutation.isPending) return;
+    forgotMutation.mutate(email.trim(), {
+      onSuccess: () => setSubmitted(true),
+      onError: () => setSubmitted(true),
+    });
   };
+  const loading = forgotMutation.isPending;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -267,11 +269,6 @@ const styles = StyleSheet.create({
   },
   inputWrapFocused: {
     borderColor: '#C43A4A',
-    shadowColor: '#C43A4A',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
   },
   input: {
     flex: 1,

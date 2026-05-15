@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const COLORS = [
   { id: 'clear', label: 'Transparente', swatch: '#FBF4EB' },
@@ -33,10 +37,26 @@ const VOLUMES = [
 export default function RegistroCorrimento() {
   const params = useLocalSearchParams();
   const prefillDate = parsePrefillDate(params.date);
+  const [date, setDate] = useState(prefillDate || new Date());
   const [color, setColor] = useState(null);
   const [texture, setTexture] = useState(null);
   const [volume, setVolume] = useState(null);
   const [notes, setNotes] = useState('');
+  const upsertMutation = useUpsertRegistroMutation();
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const existing = registroQuery.data?.[0];
+    setColor(existing?.dischargeColor ?? null);
+    setTexture(existing?.dischargeTexture ?? null);
+    setVolume(existing?.dischargeVolume ?? null);
+    setNotes(existing?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   return (
     <RegistroLayout
@@ -45,9 +65,18 @@ export default function RegistroCorrimento() {
       icon="water-outline"
       iconColor="#E7A48C"
       iconBg="rgba(231, 164, 140, 0.22)"
-      prefillDate={prefillDate}
+      date={date}
+      onDateChange={setDate}
       canSave={!!color || !!texture || !!volume}
-      onSave={() => {}}
+      onSave={(d) =>
+        upsertMutation.mutateAsync({
+          date: d,
+          dischargeColor: color,
+          dischargeTexture: texture,
+          dischargeVolume: volume,
+          notes: notes.trim() || null,
+        })
+      }
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cor</Text>

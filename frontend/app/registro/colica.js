@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const INTENSITY = [
   { id: 'mild', label: 'Leve', helper: 'Quase imperceptível', dots: 1 },
@@ -34,10 +38,27 @@ const DURATION = [
 export default function RegistroColica() {
   const params = useLocalSearchParams();
   const prefillDate = parsePrefillDate(params.date);
+  const [date, setDate] = useState(prefillDate || new Date());
   const [intensity, setIntensity] = useState(null);
   const [locations, setLocations] = useState([]);
   const [duration, setDuration] = useState(null);
   const [notes, setNotes] = useState('');
+  const upsertMutation = useUpsertRegistroMutation();
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+  const existing = registroQuery.data?.[0];
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const prev = registroQuery.data?.[0];
+    setIntensity(prev?.crampIntensity ?? null);
+    setLocations(prev?.crampLocations ?? []);
+    setDuration(prev?.crampDuration ?? null);
+    setNotes(prev?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   const toggleLocation = (id) => {
     setLocations((prev) =>
@@ -52,9 +73,20 @@ export default function RegistroColica() {
       icon="flash"
       iconColor="#C43A4A"
       iconBg="#FBD9E5"
-      prefillDate={prefillDate}
+      date={date}
+      onDateChange={setDate}
       canSave={!!intensity}
-      onSave={() => {}}
+      onSave={(d) => {
+        const others = (existing?.symptoms || []).filter((s) => s !== 'cramps');
+        return upsertMutation.mutateAsync({
+          date: d,
+          symptoms: [...others, 'cramps'],
+          crampIntensity: intensity,
+          crampLocations: locations,
+          crampDuration: duration,
+          notes: notes.trim() || null,
+        });
+      }}
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Intensidade</Text>

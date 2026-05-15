@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const FLOW_OPTIONS = [
   { id: 'spotting', label: 'Spotting', helper: 'Apenas borra', icon: 'ellipse-outline' },
@@ -20,8 +24,22 @@ const FLOW_OPTIONS = [
 export default function RegistroMenstruacao() {
   const params = useLocalSearchParams();
   const prefillDate = parsePrefillDate(params.date);
+  const [date, setDate] = useState(prefillDate || new Date());
   const [flow, setFlow] = useState(null);
   const [notes, setNotes] = useState('');
+  const upsertMutation = useUpsertRegistroMutation();
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const existing = registroQuery.data?.[0];
+    setFlow(existing?.flow ?? null);
+    setNotes(existing?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   return (
     <RegistroLayout
@@ -30,9 +48,16 @@ export default function RegistroMenstruacao() {
       icon="water"
       iconColor="#C43A4A"
       iconBg="#FBD9E5"
-      prefillDate={prefillDate}
+      date={date}
+      onDateChange={setDate}
       canSave={!!flow}
-      onSave={() => {}}
+      onSave={(d) =>
+        upsertMutation.mutateAsync({
+          date: d,
+          flow,
+          notes: notes.trim() || null,
+        })
+      }
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Intensidade</Text>

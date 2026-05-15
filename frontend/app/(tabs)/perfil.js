@@ -13,19 +13,13 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-
-const USER = {
-  name: 'Maria Silva',
-  email: 'maria.silva@email.com',
-  initials: 'M',
-};
-
-const CYCLE = {
-  startDate: '12 de abril',
-  duration: 28,
-  periodDuration: 5,
-  currentDay: 14,
-};
+import { useAuth } from '../../lib/AuthContext';
+import { useCycleQuery } from '../../services/queries';
+import {
+  dayOfCycle,
+  formatStartDate,
+  getInitials,
+} from '../../lib/cycle';
 
 const SUPPORT_PHONES = [
   {
@@ -64,8 +58,19 @@ const SUPPORT_PHONES = [
 
 export default function Perfil() {
   const router = useRouter();
+  const { user, logout } = useAuth();
+  const cycleQuery = useCycleQuery();
   const [notifications, setNotifications] = useState(true);
   const [periodReminders, setPeriodReminders] = useState(true);
+
+  const userName = user?.name || 'Usuária';
+  const userEmail = user?.email || '';
+  const initials = getInitials(user?.name);
+  const cycle = cycleQuery.data;
+  const cycleDay = cycle
+    ? dayOfCycle(cycle.lastPeriodStart, cycle.cycleDuration)
+    : null;
+  const cycleStartLabel = cycle ? formatStartDate(cycle.lastPeriodStart) : null;
 
   const handleLogout = () => {
     Alert.alert('Sair da conta', 'Tem certeza que deseja sair?', [
@@ -73,7 +78,10 @@ export default function Perfil() {
       {
         text: 'Sair',
         style: 'destructive',
-        onPress: () => router.replace('/login'),
+        onPress: async () => {
+          await logout();
+          router.replace('/login');
+        },
       },
     ]);
   };
@@ -107,10 +115,10 @@ export default function Perfil() {
         >
           <View style={styles.profileHeader}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{USER.initials}</Text>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
-            <Text style={styles.userName}>{USER.name}</Text>
-            <Text style={styles.userEmail}>{USER.email}</Text>
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userEmail}>{userEmail}</Text>
             <TouchableOpacity
               style={styles.editButton}
               activeOpacity={0.85}
@@ -140,17 +148,21 @@ export default function Perfil() {
 
             <View style={styles.cycleStats}>
               <View style={styles.cycleStat}>
-                <Text style={styles.cycleStatValue}>{CYCLE.currentDay}</Text>
+                <Text style={styles.cycleStatValue}>{cycleDay ?? '—'}</Text>
                 <Text style={styles.cycleStatLabel}>Dia atual</Text>
               </View>
               <View style={styles.cycleDivider} />
               <View style={styles.cycleStat}>
-                <Text style={styles.cycleStatValue}>{CYCLE.duration}</Text>
+                <Text style={styles.cycleStatValue}>
+                  {cycle?.cycleDuration ?? '—'}
+                </Text>
                 <Text style={styles.cycleStatLabel}>Duração</Text>
               </View>
               <View style={styles.cycleDivider} />
               <View style={styles.cycleStat}>
-                <Text style={styles.cycleStatValue}>{CYCLE.periodDuration}</Text>
+                <Text style={styles.cycleStatValue}>
+                  {cycle?.periodDuration ?? '—'}
+                </Text>
                 <Text style={styles.cycleStatLabel}>Menstruação</Text>
               </View>
             </View>
@@ -158,7 +170,9 @@ export default function Perfil() {
             <View style={styles.cycleStartRow}>
               <Ionicons name="calendar-outline" size={14} color="#6B6B6B" />
               <Text style={styles.cycleStartText}>
-                Último ciclo iniciado em {CYCLE.startDate}
+                {cycleStartLabel
+                  ? `Último ciclo iniciado em ${cycleStartLabel}`
+                  : 'Configure seu ciclo para acompanhar'}
               </Text>
             </View>
           </View>

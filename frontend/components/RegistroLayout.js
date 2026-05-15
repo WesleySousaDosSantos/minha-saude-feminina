@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,14 +62,20 @@ export default function RegistroLayout({
   icon,
   iconColor = '#C56682',
   iconBg = '#FBD9E5',
-  prefillDate,
+  date: dateProp,
+  onDateChange,
   onSave,
   canSave,
   showDateCard = true,
   children,
 }) {
   const router = useRouter();
-  const [date, setDate] = useState(prefillDate || new Date());
+  const [internalDate, setInternalDate] = useState(dateProp || new Date());
+  const date = dateProp || internalDate;
+  const setDate = (next) => {
+    if (onDateChange) onDateChange(next);
+    else setInternalDate(next);
+  };
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
   const openDatePicker = () => {
@@ -86,12 +93,26 @@ export default function RegistroLayout({
     }
   };
 
-  const handleSave = () => {
-    if (!canSave) return;
-    onSave?.(date);
-    Alert.alert('Registro salvo', 'Suas informações foram salvas com sucesso.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!canSave || saving) return;
+    try {
+      setSaving(true);
+      await onSave?.(date);
+      Alert.alert(
+        'Registro salvo',
+        'Suas informações foram salvas com sucesso.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } catch (err) {
+      Alert.alert(
+        'Não foi possível salvar',
+        err?.message || 'Tente novamente em instantes.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -168,13 +189,22 @@ export default function RegistroLayout({
           {children}
 
           <TouchableOpacity
-            style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              (!canSave || saving) && styles.saveButtonDisabled,
+            ]}
             activeOpacity={0.85}
-            disabled={!canSave}
+            disabled={!canSave || saving}
             onPress={handleSave}
           >
-            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-            <Text style={styles.saveButtonText}>Salvar</Text>
+            {saving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>Salvar</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.disclaimer}>

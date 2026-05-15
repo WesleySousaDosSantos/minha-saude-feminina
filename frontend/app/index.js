@@ -11,13 +11,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../lib/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { isAuthenticated, ready } = useAuth();
   const pulse = useRef(new Animated.Value(1)).current;
   const arrow = useRef(new Animated.Value(0)).current;
+
+  const handleContinue = () => {
+    if (!ready) return;
+    if (isAuthenticated) {
+      router.replace('/hoje');
+    } else {
+      router.push('/login');
+    }
+  };
 
   useEffect(() => {
     Animated.loop(
@@ -55,7 +66,7 @@ export default function SplashScreen() {
     <TouchableOpacity
       style={{ flex: 1 }}
       activeOpacity={0.95}
-      onPress={() => router.push('/login')}
+      onPress={handleContinue}
     >
       <StatusBar style="light" />
 

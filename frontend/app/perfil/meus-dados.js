@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,12 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../lib/AuthContext';
+import {
+  useCycleQuery,
+  useLembretesQuery,
+  useRegistrosQuery,
+} from '../../services/queries';
 
 if (
   Platform.OS === 'android' &&
@@ -21,97 +27,158 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const SECTIONS = [
-  {
-    id: 'profile',
-    icon: 'person',
-    iconColor: '#C43A4A',
-    iconBg: '#FBD9E5',
-    title: 'Dados de cadastro',
-    helper: 'Informações fornecidas no seu perfil',
-    items: [
-      { label: 'Nome completo', value: 'Maria Silva' },
-      { label: 'Email', value: 'maria.silva@email.com' },
-      { label: 'Telefone', value: 'Não informado' },
-      { label: 'Data de nascimento', value: '12 de junho de 1995' },
-      { label: 'Conta criada em', value: '10 de março de 2026' },
-    ],
-  },
-  {
-    id: 'cycle',
-    icon: 'water',
-    iconColor: '#C43A4A',
-    iconBg: '#FBD9E5',
-    title: 'Dados do ciclo',
-    helper: 'Configurações usadas para previsão',
-    items: [
-      { label: 'Última menstruação', value: '01 de maio de 2026' },
-      { label: 'Duração média do ciclo', value: '28 dias' },
-      { label: 'Duração da menstruação', value: '5 dias' },
-      { label: 'Ciclos registrados', value: '3 ciclos' },
-    ],
-  },
-  {
-    id: 'registros',
-    icon: 'document-text',
-    iconColor: '#C56682',
-    iconBg: 'rgba(197, 102, 130, 0.18)',
-    title: 'Registros diários',
-    helper: 'Sintomas, humor, fluxo e anotações',
-    items: [
-      { label: 'Total de registros', value: '47 entradas' },
-      { label: 'Sintomas registrados', value: '23 ocorrências' },
-      { label: 'Humor registrado', value: '31 entradas' },
-      { label: 'Fluxo registrado', value: '15 dias' },
-      { label: 'Anotações livres', value: '12 textos' },
-      { label: 'Primeiro registro', value: '12 de março de 2026' },
-    ],
-  },
-  {
-    id: 'lembretes',
-    icon: 'alarm',
-    iconColor: '#E7A48C',
-    iconBg: 'rgba(231, 164, 140, 0.25)',
-    title: 'Lembretes',
-    helper: 'Notificações que você configurou',
-    items: [
-      { label: 'Lembretes ativos', value: '2' },
-      { label: 'Próximo lembrete', value: 'Hoje, 22:00 — Pílula' },
-      { label: 'Histórico de notificações', value: '14 enviadas' },
-    ],
-  },
-  {
-    id: 'preferences',
-    icon: 'options',
-    iconColor: '#1F1F1F',
-    iconBg: '#FBF4EB',
-    title: 'Preferências',
-    helper: 'Configurações armazenadas localmente',
-    items: [
-      { label: 'Notificações gerais', value: 'Ativadas' },
-      { label: 'Lembrete de menstruação', value: 'Ativado' },
-      { label: 'Idioma', value: 'Português (Brasil)' },
-    ],
-  },
-  {
-    id: 'technical',
-    icon: 'hardware-chip',
-    iconColor: '#6B6B6B',
-    iconBg: 'rgba(107, 107, 107, 0.12)',
-    title: 'Dados técnicos',
-    helper: 'Necessários para o funcionamento',
-    items: [
-      { label: 'Versão do app', value: '1.0.0' },
-      { label: 'Plataforma', value: 'Mobile' },
-      { label: 'ID do dispositivo', value: 'Anônimo (UUID local)' },
-      { label: 'Última sincronização', value: 'Há 5 minutos' },
-    ],
-  },
+const MONTHS_LONG = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
 ];
+
+function formatDateLong(iso) {
+  if (!iso) return 'Não informado';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'Não informado';
+  return `${d.getDate()} de ${MONTHS_LONG[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+function buildSections({ user, cycle, registros, lembretes }) {
+  const symptomsCount = (registros || []).reduce(
+    (acc, r) => acc + (r.symptoms?.length || 0),
+    0
+  );
+  const moodCount = (registros || []).filter((r) => !!r.mood).length;
+  const flowCount = (registros || []).filter((r) => !!r.flow).length;
+  const notesCount = (registros || []).filter(
+    (r) => r.notes && r.notes.trim()
+  ).length;
+  const firstRegistro = (registros || []).reduce((acc, r) => {
+    if (!acc) return r.date;
+    return r.date < acc ? r.date : acc;
+  }, null);
+
+  const activeReminders = (lembretes || []).filter((l) => !l.completed).length;
+  const completedReminders = (lembretes || []).filter(
+    (l) => l.completed
+  ).length;
+
+  return [
+    {
+      id: 'profile',
+      icon: 'person',
+      iconColor: '#C43A4A',
+      iconBg: '#FBD9E5',
+      title: 'Dados de cadastro',
+      helper: 'Informações fornecidas no seu perfil',
+      items: [
+        { label: 'Nome completo', value: user?.name || 'Não informado' },
+        { label: 'Email', value: user?.email || 'Não informado' },
+        { label: 'Telefone', value: user?.phone || 'Não informado' },
+        { label: 'Data de nascimento', value: formatDateLong(user?.birthDate) },
+        { label: 'Conta criada em', value: formatDateLong(user?.createdAt) },
+      ],
+    },
+    {
+      id: 'cycle',
+      icon: 'water',
+      iconColor: '#C43A4A',
+      iconBg: '#FBD9E5',
+      title: 'Dados do ciclo',
+      helper: 'Configurações usadas para previsão',
+      items: [
+        {
+          label: 'Última menstruação',
+          value: cycle ? formatDateLong(cycle.lastPeriodStart) : 'Não configurado',
+        },
+        {
+          label: 'Duração média do ciclo',
+          value: cycle ? `${cycle.cycleDuration} dias` : '—',
+        },
+        {
+          label: 'Duração da menstruação',
+          value: cycle ? `${cycle.periodDuration} dias` : '—',
+        },
+      ],
+    },
+    {
+      id: 'registros',
+      icon: 'document-text',
+      iconColor: '#C56682',
+      iconBg: 'rgba(197, 102, 130, 0.18)',
+      title: 'Registros diários',
+      helper: 'Sintomas, humor, fluxo e anotações',
+      items: [
+        {
+          label: 'Total de registros',
+          value: `${registros?.length || 0} entradas`,
+        },
+        { label: 'Sintomas registrados', value: `${symptomsCount} ocorrências` },
+        { label: 'Humor registrado', value: `${moodCount} entradas` },
+        { label: 'Fluxo registrado', value: `${flowCount} dias` },
+        { label: 'Anotações livres', value: `${notesCount} textos` },
+        {
+          label: 'Primeiro registro',
+          value: firstRegistro ? formatDateLong(firstRegistro) : 'Nenhum ainda',
+        },
+      ],
+    },
+    {
+      id: 'lembretes',
+      icon: 'alarm',
+      iconColor: '#E7A48C',
+      iconBg: 'rgba(231, 164, 140, 0.25)',
+      title: 'Lembretes',
+      helper: 'Notificações que você configurou',
+      items: [
+        { label: 'Lembretes ativos', value: String(activeReminders) },
+        { label: 'Lembretes concluídos', value: String(completedReminders) },
+        {
+          label: 'Total cadastrados',
+          value: String(lembretes?.length || 0),
+        },
+      ],
+    },
+    {
+      id: 'technical',
+      icon: 'hardware-chip',
+      iconColor: '#6B6B6B',
+      iconBg: 'rgba(107, 107, 107, 0.12)',
+      title: 'Dados técnicos',
+      helper: 'Necessários para o funcionamento',
+      items: [
+        { label: 'Versão do app', value: '1.0.0' },
+        { label: 'Plataforma', value: Platform.OS },
+        { label: 'Identificador da conta', value: user?.id || '—' },
+      ],
+    },
+  ];
+}
 
 export default function MeusDados() {
   const router = useRouter();
+  const { user } = useAuth();
+  const cycleQuery = useCycleQuery();
+  const registrosQuery = useRegistrosQuery();
+  const lembretesQuery = useLembretesQuery();
   const [expanded, setExpanded] = useState('profile');
+
+  const SECTIONS = useMemo(
+    () =>
+      buildSections({
+        user,
+        cycle: cycleQuery.data,
+        registros: registrosQuery.data,
+        lembretes: lembretesQuery.data,
+      }),
+    [user, cycleQuery.data, registrosQuery.data, lembretesQuery.data]
+  );
 
   const toggle = (id) => {
     LayoutAnimation.configureNext({

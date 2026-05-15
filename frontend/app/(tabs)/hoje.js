@@ -5,22 +5,70 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../lib/AuthContext';
+import {
+  useCycleQuery,
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
+import { dayOfCycle } from '../../lib/cycle';
 
 const moods = [
   { id: 'happy', icon: 'happy-outline', label: 'Bem' },
-  { id: 'neutral', icon: 'remove-circle-outline', label: 'Normal' },
+  { id: 'normal', icon: 'remove-circle-outline', label: 'Normal' },
   { id: 'sad', icon: 'sad-outline', label: 'Triste' },
   { id: 'tired', icon: 'bed-outline', label: 'Cansada' },
 ];
 
 export default function Hoje() {
   const router = useRouter();
+  const { user } = useAuth();
+  const cycleQuery = useCycleQuery();
+  const today = new Date();
+  const todayRegistroQuery = useRegistrosByDateQuery(today);
+  const upsertMutation = useUpsertRegistroMutation();
+
+  const firstName = (user?.name || '').trim().split(/\s+/)[0] || 'amiga';
+  const cycle = cycleQuery.data;
+  const dayCurrent = cycle
+    ? dayOfCycle(cycle.lastPeriodStart, cycle.cycleDuration)
+    : null;
+  const cycleTotal = cycle?.cycleDuration ?? null;
+  const daysToNext =
+    cycle && dayCurrent ? Math.max(0, cycle.cycleDuration - dayCurrent + 1) : null;
+  const ovulationDay = cycle ? cycle.cycleDuration - 14 : null;
+  const phaseLabel = (() => {
+    if (!cycle || !dayCurrent) return 'Configure seu ciclo';
+    if (dayCurrent <= cycle.periodDuration) return 'Menstruação';
+    if (ovulationDay && dayCurrent === ovulationDay) return 'Ovulação';
+    if (ovulationDay && dayCurrent >= ovulationDay - 4 && dayCurrent <= ovulationDay + 1)
+      return 'Período fértil';
+    return 'Fase neutra';
+  })();
+
+  const todayRegistro = todayRegistroQuery.data?.[0];
+  const symptomsToday = todayRegistro?.symptoms?.length || 0;
+  const selectedMood = todayRegistro?.mood;
+
+  const pickMood = (id) => {
+    upsertMutation.mutate(
+      { date: today, mood: id },
+      {
+        onError: (err) =>
+          Alert.alert(
+            'Não foi possível registrar',
+            err?.message || 'Tente novamente.'
+          ),
+      }
+    );
+  };
   return (
     <View style={styles.root}>
       <View style={[styles.blob, styles.blobTop]} />
@@ -35,10 +83,14 @@ export default function Hoje() {
         >
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.greeting}>Olá, Maria</Text>
+              <Text style={styles.greeting}>Olá, {firstName}</Text>
               <Text style={styles.subGreeting}>Como você está hoje?</Text>
             </View>
-            <TouchableOpacity style={styles.avatar} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.avatar}
+              activeOpacity={0.7}
+              onPress={() => router.push('/perfil')}
+            >
               <Ionicons name="person" size={22} color="#C56682" />
             </TouchableOpacity>
           </View>
@@ -57,15 +109,21 @@ export default function Hoje() {
                 <View style={styles.ringOuter}>
                   <View style={styles.ringInner}>
                     <Text style={styles.ringDayLabel}>DIA</Text>
-                    <Text style={styles.ringDayNumber}>14</Text>
-                    <Text style={styles.ringTotal}>de 28</Text>
+                    <Text style={styles.ringDayNumber}>
+                      {dayCurrent ?? '—'}
+                    </Text>
+                    <Text style={styles.ringTotal}>
+                      {cycleTotal ? `de ${cycleTotal}` : ''}
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.heroPhase}>Ovulação</Text>
+                <Text style={styles.heroPhase}>{phaseLabel}</Text>
                 <View style={styles.heroBadge}>
                   <Ionicons name="water" size={14} color="#C43A4A" />
                   <Text style={styles.heroBadgeText}>
-                    Próxima menstruação em 14 dias
+                    {daysToNext != null
+                      ? `Próxima menstruação em ${daysToNext} dias`
+                      : 'Configure seu ciclo no perfil'}
                   </Text>
                 </View>
               </View>
@@ -80,18 +138,31 @@ export default function Hoje() {
               </Text>
             </View>
             <View style={styles.moodRow}>
-              {moods.map((mood) => (
-                <TouchableOpacity
-                  key={mood.id}
-                  style={styles.moodItem}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.moodIcon}>
-                    <Ionicons name={mood.icon} size={26} color="#C56682" />
-                  </View>
-                  <Text style={styles.moodLabel}>{mood.label}</Text>
-                </TouchableOpacity>
-              ))}
+              {moods.map((mood) => {
+                const active = selectedMood === mood.id;
+                return (
+                  <TouchableOpacity
+                    key={mood.id}
+                    style={styles.moodItem}
+                    activeOpacity={0.7}
+                    onPress={() => pickMood(mood.id)}
+                  >
+                    <View
+                      style={[
+                        styles.moodIcon,
+                        active && { backgroundColor: '#C56682' },
+                      ]}
+                    >
+                      <Ionicons
+                        name={mood.icon}
+                        size={26}
+                        color={active ? '#FFFFFF' : '#C56682'}
+                      />
+                    </View>
+                    <Text style={styles.moodLabel}>{mood.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -100,14 +171,14 @@ export default function Hoje() {
               <View style={styles.statIcon}>
                 <Ionicons name="calendar" size={20} color="#C56682" />
               </View>
-              <Text style={styles.statValue}>3</Text>
-              <Text style={styles.statLabel}>Ciclos registrados</Text>
+              <Text style={styles.statValue}>{dayCurrent ?? '—'}</Text>
+              <Text style={styles.statLabel}>Dia do ciclo</Text>
             </View>
             <View style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: '#FBF4EB' }]}>
                 <Ionicons name="heart" size={20} color="#C43A4A" />
               </View>
-              <Text style={styles.statValue}>5</Text>
+              <Text style={styles.statValue}>{symptomsToday}</Text>
               <Text style={styles.statLabel}>Sintomas hoje</Text>
             </View>
           </View>

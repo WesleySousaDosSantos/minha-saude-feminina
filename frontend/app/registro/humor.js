@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const MOODS = [
   { id: 'happy', label: 'Bem', helper: 'Animada, leve', icon: 'happy-outline' },
@@ -30,9 +34,24 @@ const ENERGY = [
 export default function RegistroHumor() {
   const params = useLocalSearchParams();
   const prefillDate = parsePrefillDate(params.date);
+  const [date, setDate] = useState(prefillDate || new Date());
   const [mood, setMood] = useState(null);
   const [energy, setEnergy] = useState(null);
   const [notes, setNotes] = useState('');
+  const upsertMutation = useUpsertRegistroMutation();
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const existing = registroQuery.data?.[0];
+    setMood(existing?.mood ?? null);
+    setEnergy(existing?.energy ?? null);
+    setNotes(existing?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   return (
     <RegistroLayout
@@ -41,9 +60,17 @@ export default function RegistroHumor() {
       icon="happy-outline"
       iconColor="#C56682"
       iconBg="rgba(197, 102, 130, 0.18)"
-      prefillDate={prefillDate}
+      date={date}
+      onDateChange={setDate}
       canSave={!!mood}
-      onSave={() => {}}
+      onSave={(d) =>
+        upsertMutation.mutateAsync({
+          date: d,
+          mood,
+          energy,
+          notes: notes.trim() || null,
+        })
+      }
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Como está seu humor?</Text>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,13 +18,9 @@ import { useRouter } from 'expo-router';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
-
-const INITIAL_USER = {
-  name: 'Maria Silva',
-  email: 'maria.silva@email.com',
-  phone: '',
-  birthDate: new Date(1995, 5, 12),
-};
+import { useAuth } from '../../lib/AuthContext';
+import { useUpdateMeMutation } from '../../services/queries';
+import { parseISODate } from '../../lib/cycle';
 
 function formatBirthDate(date) {
   const months = [
@@ -45,10 +42,18 @@ function formatBirthDate(date) {
 
 export default function EditarPerfil() {
   const router = useRouter();
-  const [name, setName] = useState(INITIAL_USER.name);
-  const [email, setEmail] = useState(INITIAL_USER.email);
-  const [phone, setPhone] = useState(INITIAL_USER.phone);
-  const [birthDate, setBirthDate] = useState(INITIAL_USER.birthDate);
+  const { user, patchUser } = useAuth();
+  const updateMutation = useUpdateMeMutation();
+
+  const initialBirth = useMemo(
+    () => parseISODate(user?.birthDate) || new Date(1995, 0, 1),
+    [user?.birthDate]
+  );
+
+  const [name, setName] = useState(user?.name || '');
+  const [email] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [birthDate, setBirthDate] = useState(initialBirth);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
   const [focused, setFocused] = useState(null);
 
@@ -56,10 +61,9 @@ export default function EditarPerfil() {
   const canSave = name.trim().length >= 2 && validEmail;
 
   const dirty =
-    name !== INITIAL_USER.name ||
-    email !== INITIAL_USER.email ||
-    phone !== INITIAL_USER.phone ||
-    birthDate.getTime() !== INITIAL_USER.birthDate.getTime();
+    name !== (user?.name || '') ||
+    phone !== (user?.phone || '') ||
+    birthDate.getTime() !== initialBirth.getTime();
 
   const goBack = () => {
     if (dirty) {
@@ -92,9 +96,25 @@ export default function EditarPerfil() {
   };
 
   const handleSave = () => {
-    Alert.alert('Perfil atualizado', 'Suas informações foram salvas.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    if (!canSave || !dirty || updateMutation.isPending) return;
+    const payload = {
+      name: name.trim(),
+      phone: phone.trim() || null,
+      birthDate: birthDate.toISOString(),
+    };
+    updateMutation.mutate(payload, {
+      onSuccess: (updatedUser) => {
+        patchUser(updatedUser);
+        Alert.alert('Perfil atualizado', 'Suas informações foram salvas.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      },
+      onError: (err) =>
+        Alert.alert(
+          'Não foi possível salvar',
+          err?.message || 'Tente novamente.'
+        ),
+    });
   };
 
   const initials = name
@@ -159,14 +179,15 @@ export default function EditarPerfil() {
                 label="Email"
                 icon="mail-outline"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={() => {}}
                 placeholder="seu@email.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                focused={focused === 'email'}
-                onFocus={() => setFocused('email')}
-                onBlur={() => setFocused(null)}
+                focused={false}
+                onFocus={() => {}}
+                onBlur={() => {}}
+                editable={false}
               />
 
               <Field
@@ -230,14 +251,21 @@ export default function EditarPerfil() {
             <TouchableOpacity
               style={[
                 styles.saveButton,
-                (!canSave || !dirty) && styles.saveButtonDisabled,
+                (!canSave || !dirty || updateMutation.isPending) &&
+                  styles.saveButtonDisabled,
               ]}
               activeOpacity={0.85}
-              disabled={!canSave || !dirty}
+              disabled={!canSave || !dirty || updateMutation.isPending}
               onPress={handleSave}
             >
-              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>Salvar alterações</Text>
+              {updateMutation.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>Salvar alterações</Text>
+                </>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -258,6 +286,7 @@ function Field({
   focused,
   onFocus,
   onBlur,
+  editable = true,
 }) {
   return (
     <View style={styles.fieldGroup}>
@@ -269,7 +298,7 @@ function Field({
           color={focused ? '#C43A4A' : '#C56682'}
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, !editable && styles.inputDisabled]}
           placeholder={placeholder}
           placeholderTextColor="#9E9E9E"
           value={value}
@@ -279,6 +308,7 @@ function Field({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
+          editable={editable}
         />
       </View>
     </View>
@@ -447,6 +477,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1F1F1F',
     marginLeft: 10,
+  },
+  inputDisabled: {
+    color: '#9E9E9E',
   },
   dateCard: {
     flexDirection: 'row',

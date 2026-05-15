@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useCycleQuery } from '../../services/queries';
 
 const MONTHS = [
   'Janeiro',
@@ -96,6 +97,7 @@ const PHASE_COLOR = {
 
 export default function Ciclo() {
   const router = useRouter();
+  const cycleQuery = useCycleQuery();
   const today = startOfDay(new Date());
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -109,12 +111,16 @@ export default function Ciclo() {
   };
 
   const cycleStart = useMemo(() => {
+    if (cycleQuery.data?.lastPeriodStart) {
+      const d = new Date(cycleQuery.data.lastPeriodStart);
+      if (!isNaN(d.getTime())) return startOfDay(d);
+    }
     const start = new Date(today);
     start.setDate(today.getDate() - 13);
     return start;
-  }, []);
-  const cycleDuration = 28;
-  const periodDuration = 5;
+  }, [cycleQuery.data]);
+  const cycleDuration = cycleQuery.data?.cycleDuration ?? 28;
+  const periodDuration = cycleQuery.data?.periodDuration ?? 5;
 
   const grid = useMemo(
     () => buildGrid(viewYear, viewMonth),

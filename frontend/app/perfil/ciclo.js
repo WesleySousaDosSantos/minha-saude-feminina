@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,17 +16,18 @@ import { useRouter } from 'expo-router';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
+import {
+  useCycleQuery,
+  useUpsertCycleMutation,
+} from '../../services/queries';
+import { parseISODate } from '../../lib/cycle';
 
-const INITIAL = {
-  lastPeriod: (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 13);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  })(),
-  duration: 28,
-  periodDuration: 5,
-};
+const FALLBACK_LAST = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - 13);
+  d.setHours(0, 0, 0, 0);
+  return d;
+})();
 
 const MIN_DURATION = 21;
 const MAX_DURATION = 40;
@@ -60,15 +62,33 @@ function formatLastPeriod(date) {
 
 export default function EditarCiclo() {
   const router = useRouter();
-  const [lastPeriod, setLastPeriod] = useState(INITIAL.lastPeriod);
-  const [duration, setDuration] = useState(INITIAL.duration);
-  const [periodDuration, setPeriodDuration] = useState(INITIAL.periodDuration);
+  const cycleQuery = useCycleQuery();
+  const upsertMutation = useUpsertCycleMutation();
+
+  const initial = useMemo(() => {
+    const c = cycleQuery.data;
+    return {
+      lastPeriod: parseISODate(c?.lastPeriodStart) || FALLBACK_LAST,
+      duration: c?.cycleDuration ?? 28,
+      periodDuration: c?.periodDuration ?? 5,
+    };
+  }, [cycleQuery.data]);
+
+  const [lastPeriod, setLastPeriod] = useState(initial.lastPeriod);
+  const [duration, setDuration] = useState(initial.duration);
+  const [periodDuration, setPeriodDuration] = useState(initial.periodDuration);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
+  useEffect(() => {
+    setLastPeriod(initial.lastPeriod);
+    setDuration(initial.duration);
+    setPeriodDuration(initial.periodDuration);
+  }, [initial]);
+
   const dirty =
-    lastPeriod.getTime() !== INITIAL.lastPeriod.getTime() ||
-    duration !== INITIAL.duration ||
-    periodDuration !== INITIAL.periodDuration;
+    lastPeriod.getTime() !== initial.lastPeriod.getTime() ||
+    duration !== initial.duration ||
+    periodDuration !== initial.periodDuration;
 
   const ovulationDay = duration - 14;
   const nextPeriodEstimate = (() => {
@@ -112,11 +132,25 @@ export default function EditarCiclo() {
   };
 
   const handleSave = () => {
-    Alert.alert(
-      'Ciclo atualizado',
-      'As previsões do seu calendário foram recalculadas.',
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
+    if (!dirty || upsertMutation.isPending) return;
+    const payload = {
+      lastPeriodStart: lastPeriod.toISOString(),
+      cycleDuration: duration,
+      periodDuration,
+    };
+    upsertMutation.mutate(payload, {
+      onSuccess: () =>
+        Alert.alert(
+          'Ciclo atualizado',
+          'As previsões do seu calendário foram recalculadas.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        ),
+      onError: (err) =>
+        Alert.alert(
+          'Não foi possível salvar',
+          err?.message || 'Tente novamente.'
+        ),
+    });
   };
 
   return (
@@ -252,13 +286,22 @@ export default function EditarCiclo() {
           </View>
 
           <TouchableOpacity
-            style={[styles.saveButton, !dirty && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              (!dirty || upsertMutation.isPending) && styles.saveButtonDisabled,
+            ]}
             activeOpacity={0.85}
-            disabled={!dirty}
+            disabled={!dirty || upsertMutation.isPending}
             onPress={handleSave}
           >
-            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-            <Text style={styles.saveButtonText}>Salvar alterações</Text>
+            {upsertMutation.isPending ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>Salvar alterações</Text>
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

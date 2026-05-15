@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const SYMPTOMS = [
   { id: 'headache', label: 'Dor de cabeça', icon: 'medkit-outline' },
@@ -26,8 +30,26 @@ const SYMPTOMS = [
 export default function RegistroSintomas() {
   const params = useLocalSearchParams();
   const prefillDate = parsePrefillDate(params.date);
+  const [date, setDate] = useState(prefillDate || new Date());
   const [selected, setSelected] = useState([]);
   const [notes, setNotes] = useState('');
+  const upsertMutation = useUpsertRegistroMutation();
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+  const existing = registroQuery.data?.[0];
+  const hasCramps = existing?.symptoms?.includes('cramps');
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const prev = registroQuery.data?.[0];
+    setSelected(
+      (prev?.symptoms || []).filter((s) => s !== 'cramps')
+    );
+    setNotes(prev?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   const toggle = (id) => {
     setSelected((prev) =>
@@ -42,9 +64,16 @@ export default function RegistroSintomas() {
       icon="medkit"
       iconColor="#C56682"
       iconBg="rgba(197, 102, 130, 0.18)"
-      prefillDate={prefillDate}
+      date={date}
+      onDateChange={setDate}
       canSave={selected.length > 0}
-      onSave={() => {}}
+      onSave={(d) =>
+        upsertMutation.mutateAsync({
+          date: d,
+          symptoms: hasCramps ? [...selected, 'cramps'] : selected,
+          notes: notes.trim() || null,
+        })
+      }
     >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>

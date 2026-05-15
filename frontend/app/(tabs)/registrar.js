@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,10 @@ import { useRouter } from 'expo-router';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
+import {
+  useRegistrosByDateQuery,
+  useUpsertRegistroMutation,
+} from '../../services/queries';
 
 const FLOW_OPTIONS = [
   { id: 'none', label: 'Nenhum', icon: 'remove-circle-outline' },
@@ -83,12 +88,27 @@ function formatDate(date) {
 
 export default function Registrar() {
   const router = useRouter();
+  const upsertMutation = useUpsertRegistroMutation();
   const [date, setDate] = useState(new Date());
   const [showIOSPicker, setShowIOSPicker] = useState(false);
   const [flow, setFlow] = useState(null);
   const [mood, setMood] = useState(null);
   const [symptoms, setSymptoms] = useState([]);
   const [notes, setNotes] = useState('');
+  const registroQuery = useRegistrosByDateQuery(date);
+  const prefillKeyRef = useRef(null);
+
+  useEffect(() => {
+    if (registroQuery.isLoading) return;
+    const key = date.toISOString().slice(0, 10);
+    if (prefillKeyRef.current === key) return;
+    prefillKeyRef.current = key;
+    const existing = registroQuery.data?.[0];
+    setFlow(existing?.flow ?? null);
+    setMood(existing?.mood ?? null);
+    setSymptoms(existing?.symptoms ?? []);
+    setNotes(existing?.notes ?? '');
+  }, [date, registroQuery.data, registroQuery.isLoading]);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -116,19 +136,32 @@ export default function Registrar() {
     }
   };
 
-  const handleSave = () => {
-    Alert.alert(
-      'Registro salvo',
-      'Suas informações foram salvas com sucesso.',
-      [{ text: 'OK' }]
-    );
-    setFlow(null);
-    setMood(null);
-    setSymptoms([]);
-    setNotes('');
-  };
-
   const hasData = flow || mood || symptoms.length > 0 || notes.trim().length > 0;
+
+  const handleSave = () => {
+    if (!hasData || upsertMutation.isPending) return;
+    const payload = {
+      date,
+      flow: flow === 'none' ? null : flow,
+      mood,
+      symptoms,
+      notes: notes.trim() || null,
+    };
+    upsertMutation.mutate(payload, {
+      onSuccess: () => {
+        Alert.alert(
+          'Registro salvo',
+          'Suas informações foram salvas com sucesso.',
+          [{ text: 'OK' }]
+        );
+      },
+      onError: (err) =>
+        Alert.alert(
+          'Não foi possível salvar',
+          err?.message || 'Tente novamente.'
+        ),
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -318,13 +351,22 @@ export default function Registrar() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, !hasData && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            (!hasData || upsertMutation.isPending) && styles.saveButtonDisabled,
+          ]}
           activeOpacity={0.85}
-          disabled={!hasData}
+          disabled={!hasData || upsertMutation.isPending}
           onPress={handleSave}
         >
-          <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-          <Text style={styles.saveButtonText}>Salvar registro</Text>
+          {upsertMutation.isPending ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+              <Text style={styles.saveButtonText}>Salvar registro</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>

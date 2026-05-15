@@ -7,11 +7,18 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Share,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../lib/AuthContext';
+import {
+  useCycleQuery,
+  useLembretesQuery,
+  useRegistrosQuery,
+} from '../../services/queries';
 
 const FORMATS = [
   {
@@ -65,7 +72,11 @@ const SECTIONS = [
 
 export default function BaixarDados() {
   const router = useRouter();
-  const [format, setFormat] = useState('pdf');
+  const { user } = useAuth();
+  const cycleQuery = useCycleQuery();
+  const registrosQuery = useRegistrosQuery();
+  const lembretesQuery = useLembretesQuery();
+  const [format, setFormat] = useState('json');
   const [includes, setIncludes] = useState({
     profile: true,
     cycle: true,
@@ -90,17 +101,46 @@ export default function BaixarDados() {
   const allOn = Object.values(includes).every(Boolean);
   const someOn = Object.values(includes).some(Boolean);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!someOn || generating) return;
     setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
+    try {
+      const payload = {
+        exportadoEm: new Date().toISOString(),
+        formato: format,
+      };
+      if (includes.profile && user) {
+        payload.cadastro = {
+          nome: user.name,
+          email: user.email,
+          telefone: user.phone || null,
+          dataNascimento: user.birthDate || null,
+          criadoEm: user.createdAt || null,
+        };
+      }
+      if (includes.cycle && cycleQuery.data) {
+        payload.ciclo = cycleQuery.data;
+      }
+      if (includes.registros) {
+        payload.registros = registrosQuery.data || [];
+      }
+      if (includes.lembretes) {
+        payload.lembretes = lembretesQuery.data || [];
+      }
+
+      const content = JSON.stringify(payload, null, 2);
+      await Share.share({
+        title: `Meus dados — Minha Saúde Feminina (${format.toUpperCase()})`,
+        message: content,
+      });
+    } catch (err) {
       Alert.alert(
-        'Arquivo pronto',
-        `Seu arquivo ${format.toUpperCase()} foi gerado e está pronto para compartilhar ou salvar no dispositivo.`,
-        [{ text: 'OK' }]
+        'Não foi possível gerar',
+        err?.message || 'Tente novamente em instantes.'
       );
-    }, 1200);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (

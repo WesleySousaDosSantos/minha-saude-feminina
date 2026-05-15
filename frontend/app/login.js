@@ -9,21 +9,41 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '../lib/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+
+  const loginMutation = useMutation({
+    mutationFn: () => login({ email: email.trim(), password }),
+    onSuccess: () => router.replace('/hoje'),
+    onError: (err) =>
+      Alert.alert('Não foi possível entrar', err?.message || 'Tente novamente.'),
+  });
+
+  const canSubmit =
+    email.trim().length > 0 && password.length > 0 && !loginMutation.isPending;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    loginMutation.mutate();
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -126,12 +146,22 @@ export default function Login() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[
+                styles.primaryButton,
+                !canSubmit && styles.primaryButtonDisabled,
+              ]}
               activeOpacity={0.85}
-              onPress={() => router.replace('/hoje')}
+              disabled={!canSubmit}
+              onPress={handleSubmit}
             >
-              <Text style={styles.primaryButtonText}>Entrar</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              {loginMutation.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.primaryButtonText}>Entrar</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -251,11 +281,6 @@ const styles = StyleSheet.create({
   },
   inputWrapFocused: {
     borderColor: '#C43A4A',
-    shadowColor: '#C43A4A',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
   },
   input: {
     flex: 1,
@@ -295,6 +320,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.4,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   divider: {
     flexDirection: 'row',
