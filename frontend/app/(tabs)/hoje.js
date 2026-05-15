@@ -91,7 +91,14 @@ export default function Hoje() {
               activeOpacity={0.7}
               onPress={() => router.push('/perfil')}
             >
-              <Ionicons name="person" size={22} color="#C56682" />
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Ionicons name="person" size={22} color="#C56682" />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -301,6 +308,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   heroCard: {
     borderRadius: 24,
