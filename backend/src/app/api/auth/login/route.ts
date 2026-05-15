@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         phone: user.phone,
         birthDate: user.birthDate,
+        avatar: user.avatar,
         createdAt: user.createdAt,
       },
       token,

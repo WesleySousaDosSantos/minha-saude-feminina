@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
         name: true,
         phone: true,
         birthDate: true,
+        avatar: true,
         createdAt: true,
       },
     });

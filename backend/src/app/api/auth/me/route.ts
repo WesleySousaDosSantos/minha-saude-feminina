@@ -32,6 +32,9 @@ export async function PATCH(request: NextRequest) {
     if (data.birthDate !== undefined) {
       updateData.birthDate = data.birthDate ? parseDateOnly(data.birthDate) : null;
     }
+    if (data.avatar !== undefined) {
+      updateData.avatar = data.avatar === '' ? null : data.avatar;
+    }
     if (data.password) {
       updateData.passwordHash = await hashPassword(data.password);
     }
@@ -45,6 +48,7 @@ export async function PATCH(request: NextRequest) {
         name: true,
         phone: true,
         birthDate: true,
+        avatar: true,
         createdAt: true,
       },
     });

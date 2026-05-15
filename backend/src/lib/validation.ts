@@ -31,8 +31,9 @@ export const forgotPasswordSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
-  phone: z.string().trim().max(30).optional().or(z.literal('')),
+  phone: z.string().trim().max(30).optional().nullable().or(z.literal('')),
   birthDate: z.string().optional().nullable(),
+  avatar: z.string().max(4000000).optional().nullable(),
 });
 
 export const cycleSchema = z.object({
