@@ -112,7 +112,9 @@ export function parseDateOnly(input: string): Date {
   if (isNaN(d.getTime())) {
     throw new Error('Data inválida');
   }
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  );
 }
 
 export function parseDateTime(input: string): Date {
