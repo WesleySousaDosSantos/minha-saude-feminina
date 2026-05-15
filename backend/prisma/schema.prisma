@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  birthDate    DateTime? @db.Date
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  cycleSettings CycleSettings?
+  registros     Registro[]
+  lembretes     Lembrete[]
+
+  @@index([email])
+}
+
+model CycleSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  lastPeriodStart DateTime @db.Date
+  cycleDuration   Int      @default(28)
+  periodDuration  Int      @default(5)
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Registro {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime @db.Date
+  flow             String?
+  mood             String?
+  energy           String?
+  symptoms         String[]
+  crampIntensity   String?
+  crampLocations   String[]
+  crampDuration    String?
+  dischargeColor   String?
+  dischargeTexture String?
+  dischargeVolume  String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Lembrete {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   @default("other")
+  title     String
+  datetime  DateTime
+  repeat    String   @default("none")
+  notify    Boolean  @default(true)
+  notes     String?
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, datetime])
+  @@index([userId, completed])
+}
