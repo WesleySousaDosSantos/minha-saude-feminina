@@ -82,7 +82,7 @@ export default function EditarPerfil() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.4,
+      quality: 0.3,
       base64: true,
     });
     if (result.canceled || !result.assets?.length) return;
