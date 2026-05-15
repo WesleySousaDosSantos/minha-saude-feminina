@@ -15,6 +15,7 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import RegistroLayout, { parsePrefillDate } from '../../components/RegistroLayout';
 import { useCreateLembreteMutation } from '../../services/queries';
+import { addLembreteToCalendar } from '../../lib/calendar';
 
 const TYPES = [
   { id: 'medication', label: 'Medicação', icon: 'medical-outline' },
@@ -122,16 +123,23 @@ export default function RegistroLembrete() {
       iconBg="rgba(231, 164, 140, 0.22)"
       showDateCard={false}
       canSave={title.trim().length > 0}
-      onSave={() =>
-        createMutation.mutateAsync({
+      onSave={async () => {
+        const datetime = buildDateTime().toISOString();
+        const payload = {
           type,
           title: title.trim(),
-          datetime: buildDateTime().toISOString(),
+          datetime,
           repeat,
           notify,
           notes: notes.trim() || null,
-        })
-      }
+        };
+        await createMutation.mutateAsync(payload);
+        try {
+          await addLembreteToCalendar(payload);
+        } catch (err) {
+          console.warn('Calendário não disponível:', err?.message);
+        }
+      }}
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tipo</Text>

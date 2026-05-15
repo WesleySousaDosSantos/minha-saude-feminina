@@ -28,7 +28,14 @@
     },
     "plugins": [
       "expo-router",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "O Minha Saúde Feminina adiciona seus lembretes no calendário do celular pra te avisar na hora certa.",
+          "remindersPermission": "O Minha Saúde Feminina adiciona seus lembretes no app de lembretes do iOS."
+        }
+      ]
     ]
   }
 }
