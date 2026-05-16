@@ -21,7 +21,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FBD9E5"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.unifebe.minhasaudefeminina"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,6 +48,12 @@
           "photosPermission": "O Minha Saúde Feminina usa suas fotos para você escolher uma imagem de perfil."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d98ef3d6-6120-45b2-bfc7-56caee7f8c21"
+      }
+    }
   }
 }
